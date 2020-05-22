@@ -26,7 +26,7 @@ func (c *CLI) PlayPoker() {
 		fmt.Fprint(c.out, BadPlayerInputErrMsg)
 		return
 	}
-	c.game.Start(numberOfPlayers)
+	c.game.Start(numberOfPlayers, c.out)
 	winner, err := extractWinner(c.readLine())
 	if err != nil {
 		fmt.Fprint(c.out, BadWinnerInputErrMsg)

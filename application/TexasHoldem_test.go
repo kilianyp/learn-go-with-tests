@@ -3,11 +3,12 @@ package poker_test
 import (
 	"fmt"
 	"github.com/kilsenp/application"
+	"io/ioutil"
 	"testing"
 	"time"
 )
 
-func TestGame(t *testing.T) {
+func TestTexasHoldemGame(t *testing.T) {
 
 	var dummyPlayerStore = &poker.StubPlayerStore{}
 
@@ -15,7 +16,7 @@ func TestGame(t *testing.T) {
 		blindAlerter := &SpyBlindAlerter{}
 
 		game := poker.NewTexasHoldem(blindAlerter, dummyPlayerStore)
-		game.Start(5)
+		game.Start(5, ioutil.Discard)
 
 		cases := []scheduledAlert{
 			{0 * time.Second, 100},
@@ -38,7 +39,7 @@ func TestGame(t *testing.T) {
 		blindAlerter := &SpyBlindAlerter{}
 
 		game := poker.NewTexasHoldem(blindAlerter, dummyPlayerStore)
-		game.Start(7)
+		game.Start(7, ioutil.Discard)
 
 		cases := []scheduledAlert{
 			{0 * time.Second, 100},

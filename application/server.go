@@ -3,7 +3,11 @@ package poker
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/gorilla/websocket"
+	"html/template"
+	"log"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -16,6 +20,8 @@ type PlayerStore interface {
 type PlayerServer struct {
 	store PlayerStore
 	http.Handler
+	template *template.Template
+	game     Game
 }
 
 type Player struct {
@@ -23,15 +29,68 @@ type Player struct {
 	Wins int
 }
 
-func NewPlayerServer(store PlayerStore) *PlayerServer {
+const htmlTemplatePath = "game.html"
+
+func NewPlayerServer(store PlayerStore, game Game) (*PlayerServer, error) {
 	p := new(PlayerServer)
+
+	tmpl, err := template.ParseFiles(htmlTemplatePath)
+
+	if err != nil {
+		return nil, fmt.Errorf("problem loading template %s %v", htmlTemplatePath, err)
+	}
+
 	p.store = store
+	p.template = tmpl
+	p.game = game
+
 	router := http.NewServeMux()
 	router.Handle("/league", http.HandlerFunc(p.leagueHandler))
-	// must be exact
 	router.Handle("/players/", http.HandlerFunc(p.playersHandler))
+	router.Handle("/game", http.HandlerFunc(p.gameHandler))
+	router.Handle("/ws", http.HandlerFunc(p.webSocket))
+
 	p.Handler = router
-	return p
+
+	return p, nil
+}
+
+var wsUpgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+}
+
+type playerServerWS struct {
+	*websocket.Conn
+}
+
+func newPlayerServerWS(w http.ResponseWriter, r *http.Request) *playerServerWS {
+	conn, err := wsUpgrader.Upgrade(w, r, nil)
+
+	if err != nil {
+		log.Printf("problem upgrading connection to WebSockets %v\n", err)
+	}
+
+	return &playerServerWS{conn}
+}
+
+func (w *playerServerWS) WaitForMsg() string {
+	_, msg, err := w.ReadMessage()
+	if err != nil {
+		log.Printf("error reading from websocket %v\n", err)
+	}
+	return string(msg)
+}
+
+func (p *PlayerServer) webSocket(w http.ResponseWriter, r *http.Request) {
+	ws := newPlayerServerWS(w, r)
+
+	numberOfPlayersMsg := ws.WaitForMsg()
+	numberOfPlayers, _ := strconv.Atoi(string(numberOfPlayersMsg))
+	p.game.Start(numberOfPlayers, ws)
+
+	winner := ws.WaitForMsg()
+	p.game.Finish(string(winner))
 }
 
 const jsonContentType = "application/json"
@@ -52,6 +111,10 @@ func (p *PlayerServer) playersHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func (p *PlayerServer) gameHandler(w http.ResponseWriter, r *http.Request) {
+	p.template.Execute(w, nil)
+}
+
 func (p *PlayerServer) processWin(w http.ResponseWriter, player string) {
 	p.store.RecordWin(player)
 	w.WriteHeader(http.StatusAccepted)
@@ -65,13 +128,11 @@ func (p *PlayerServer) showScore(w http.ResponseWriter, player string) {
 	fmt.Fprint(w, score)
 }
 
-func GetPlayerScore(player string) string {
-	if player == "Pepper" {
-		return "20"
-	} else if player == "Floyd" {
-		return "10"
-	} else {
-		return ""
+func (w *playerServerWS) Write(p []byte) (n int, err error) {
+	err = w.WriteMessage(1, p)
+	if err != nil {
+		return 0, err
 	}
+	return len(p), nil
 
 }

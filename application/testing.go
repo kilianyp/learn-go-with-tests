@@ -3,31 +3,31 @@ package poker
 import "testing"
 
 type StubPlayerStore struct {
-	scores   map[string]int
-	winCalls []string
-	league   League
+	Scores   map[string]int
+	WinCalls []string
+	League   League
 }
 
 func (s *StubPlayerStore) GetPlayerScore(name string) int {
-	return s.scores[name]
+	return s.Scores[name]
 }
 
 func (s *StubPlayerStore) RecordWin(name string) {
-	s.winCalls = append(s.winCalls, name)
+	s.WinCalls = append(s.WinCalls, name)
 }
 
 func (s *StubPlayerStore) GetLeague() League {
-	return s.league
+	return s.League
 }
 
 func AssertPlayerWin(t *testing.T, store *StubPlayerStore, winner string) {
 	t.Helper()
-	if len(store.winCalls) != 1 {
-		t.Errorf("got %d calls to RecordWind want %d", len(store.winCalls), 1)
+	if len(store.WinCalls) != 1 {
+		t.Errorf("got %d calls to RecordWind want %d", len(store.WinCalls), 1)
 	}
 
-	if store.winCalls[0] != winner {
-		t.Errorf("did not store the correct winner got %q want %q", store.winCalls[0], winner)
+	if store.WinCalls[0] != winner {
+		t.Errorf("did not store the correct winner got %q want %q", store.WinCalls[0], winner)
 	}
 
 }

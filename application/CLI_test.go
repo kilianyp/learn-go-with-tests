@@ -4,21 +4,26 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/kilsenp/application"
+	"io"
 	"strings"
 	"testing"
 	"time"
 )
 
 type GameSpy struct {
-	StartedWith  int
-	StartCalled  bool
+	StartedWith int
+	StartCalled bool
+	BlindAlert  []byte
+
 	FinishedWith string
 	FinishCalled bool
 }
 
-func (g *GameSpy) Start(numberOfPlayers int) {
+func (g *GameSpy) Start(numberOfPlayers int, out io.Writer) {
 	g.StartedWith = numberOfPlayers
 	g.StartCalled = true
+
+	out.Write(g.BlindAlert)
 }
 
 func (g *GameSpy) Finish(winner string) {
@@ -44,14 +49,8 @@ func TestCLI(t *testing.T) {
 			t.Errorf("got %q, want %q", gotPrompt, wantPrompt)
 		}
 
-		if game.StartedWith != 3 {
-			t.Errorf("wanted Start called with 7 but got %d", game.StartedWith)
-		}
-
-		want := "Cleo"
-		if want != game.FinishedWith {
-			t.Fatalf("got %q want %q", game.FinishedWith, want)
-		}
+		assertGameStartedWith(t, game, 3)
+		assertFinishCalledWith(t, game, "Cleo")
 
 	})
 
@@ -70,15 +69,8 @@ func TestCLI(t *testing.T) {
 		if gotPrompt != wantPrompt {
 			t.Errorf("got %q, want %q", gotPrompt, wantPrompt)
 		}
-
-		if game.StartedWith != 7 {
-			t.Errorf("wanted Start called with 7 but got %d", game.StartedWith)
-		}
-
-		want := "Chris"
-		if want != game.FinishedWith {
-			t.Fatalf("got %q want %q", game.FinishedWith, want)
-		}
+		assertGameStartedWith(t, game, 7)
+		assertFinishCalledWith(t, game, "Chris")
 
 	})
 	t.Run("it prints an error when a non numeric value is entered and does not start the game", func(t *testing.T) {
@@ -109,6 +101,28 @@ func TestCLI(t *testing.T) {
 		}
 		assertMessageSentToUser(t, stdout, poker.PlayerPrompt, poker.BadWinnerInputErrMsg)
 	})
+
+}
+func assertFinishCalledWith(t *testing.T, got *GameSpy, want string) {
+	t.Helper()
+	passed := retryUntil(500*time.Millisecond, func() bool {
+		return want == got.FinishedWith
+	})
+
+	if !passed {
+		t.Fatalf("got %q want %q", got.FinishedWith, want)
+	}
+}
+
+func assertGameStartedWith(t *testing.T, got *GameSpy, want int) {
+	t.Helper()
+	passed := retryUntil(500*time.Millisecond, func() bool {
+		return got.StartedWith == want
+	})
+
+	if !passed {
+		t.Errorf("wanted Start called with %d  but got %d", want, got.StartedWith)
+	}
 
 }
 
@@ -149,6 +163,6 @@ type SpyBlindAlerter struct {
 	alerts []scheduledAlert
 }
 
-func (s *SpyBlindAlerter) ScheduleAlertAt(duration time.Duration, amount int) {
+func (s *SpyBlindAlerter) ScheduleAlertAt(duration time.Duration, amount int, to io.Writer) {
 	s.alerts = append(s.alerts, scheduledAlert{duration, amount})
 }

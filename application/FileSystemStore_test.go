@@ -1,6 +1,7 @@
-package poker
+package poker_test
 
 import (
+	"github.com/kilsenp/application"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -14,12 +15,12 @@ func TestFileSystemStore(t *testing.T) {
 
 		defer cleanDatabase()
 
-		store, err := NewFileSystemPlayerStore(database)
+		store, err := poker.NewFileSystemPlayerStore(database)
 		assertNoError(t, err)
 
 		got := store.GetLeague()
 
-		want := []Player{
+		want := []poker.Player{
 			{"Chris", 33},
 			{"Cleo", 10},
 		}
@@ -35,7 +36,7 @@ func TestFileSystemStore(t *testing.T) {
         {"Name": "Cleo", "Wins": 10},
         {"Name": "Chris", "Wins": 33}]`)
 		defer cleanDatabase()
-		store, err := NewFileSystemPlayerStore(database)
+		store, err := poker.NewFileSystemPlayerStore(database)
 		assertNoError(t, err)
 		got := store.GetPlayerScore("Chris")
 		want := 33
@@ -48,7 +49,7 @@ func TestFileSystemStore(t *testing.T) {
         {"Name": "Cleo", "Wins": 10},
         {"Name": "Chris", "Wins": 33}]`)
 		defer cleanDatabase()
-		store, err := NewFileSystemPlayerStore(database)
+		store, err := poker.NewFileSystemPlayerStore(database)
 		assertNoError(t, err)
 		store.RecordWin("Chris")
 		got := store.GetPlayerScore("Chris")
@@ -61,7 +62,7 @@ func TestFileSystemStore(t *testing.T) {
         {"Name": "Cleo", "Wins": 10},
         {"Name": "Chris", "Wins": 33}]`)
 		defer cleanDatabase()
-		store, err := NewFileSystemPlayerStore(database)
+		store, err := poker.NewFileSystemPlayerStore(database)
 		assertNoError(t, err)
 		store.RecordWin("Pepper")
 		got := store.GetPlayerScore("Pepper")
@@ -73,7 +74,7 @@ func TestFileSystemStore(t *testing.T) {
 		database, cleanDatabase := createTempFile(t, "")
 		defer cleanDatabase()
 
-		_, err := NewFileSystemPlayerStore(database)
+		_, err := poker.NewFileSystemPlayerStore(database)
 
 		assertNoError(t, err)
 	})
@@ -83,13 +84,13 @@ func TestFileSystemStore(t *testing.T) {
         {"Name": "Chris", "Wins": 33}]`)
 		defer cleanDatabase()
 
-		store, err := NewFileSystemPlayerStore(database)
+		store, err := poker.NewFileSystemPlayerStore(database)
 
 		assertNoError(t, err)
 
 		got := store.GetLeague()
 
-		want := []Player{
+		want := []poker.Player{
 			{"Chris", 33},
 			{"Cleo", 10},
 		}
